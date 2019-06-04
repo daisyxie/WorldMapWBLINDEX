@@ -5,6 +5,8 @@
     let statesLivedData = [];
     let citiesLivedData = [];
     let statesGeoJSONData = [];
+    let data = [];
+
     window.onload = function() {
         // load states lived data
         d3.csv("data/wblData.csv")
@@ -144,13 +146,14 @@
         .style("opacity", 0);
 
         svgScatterPlot = div.append("svg")
-        .attr('width', 150)
-        .attr('height', 150)
+        .attr('width', 250)
+        .attr('height', 250)
     ;
     }
 
     // make scatter plot
     function makeScatterPlot() {
+        data = statesLivedData;
         // get data as arrays
         let wblData = data.map((row) => parseFloat(row["WBL INDEX"]));
         let jobStartData = data.map((row) => parseFloat(row["STARTING A JOB"]));
@@ -188,20 +191,20 @@
   // make title and axes labels
   function makeLabels() {
     svgScatterPlot.append('text')
-      .attr('x', 40)
+      .attr('x', 20)
       .attr('y', 25)
-      .style('font-size', '10pt')
+      .style('font-size', '6pt')
       .text("Probability of Starting a Job vs WBL Index Around the World");
 
     svgScatterPlot.append('text')
-      .attr('x', 45)
+      .attr('x', 65)
       .attr('y', 240)
       .style('font-size', '8pt')
       .text('Probability of Starting a Job');
 
     svgScatterPlot.append('text')
       .attr('transform', 'translate(15, 300)rotate(-90)')
-      .attr('x', 110)
+      .attr('x', 150)
       .style('font-size', '8pt')
       .text('WBL Index');
   }
