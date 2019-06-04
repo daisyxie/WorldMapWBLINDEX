@@ -100,8 +100,21 @@
             else {
                 //If value is undefined…
                 return "rgb(213,222,217)";
-            }
-        });
+            }})
+            .on("mouseover", (d) => {
+                div.transition()
+                  .duration(200)
+                  .style("opacity", .9)
+                  .style("left", (d3.event.pageX) + "px")
+                  .style("top", (d3.event.pageY - 28) + "px");
+                makeScatterPlot();
+              })
+              .on("mouseout", (d) => {
+                div.transition()
+                  .duration(500)
+                  .style("opacity", 0);
+              });
+        ;
 
         var legend = d3.select("body").append("svg")
         .attr("class", "legend")
@@ -123,8 +136,155 @@
         .attr("x", 24)
         .attr("y", 10)
         .attr("dy", ".35em")
-        .text(function(d) { return d; });
-
+        .text(function(d) { return d; })
         
+        // make tooltip
+        let div = d3.select("body").append("div")
+        .attr("class", "tooltip")
+        .style("opacity", 0);
+
+        svgScatterPlot = div.append("svg")
+        .attr('width', 150)
+        .attr('height', 150)
+    ;
     }
+
+    // make scatter plot
+    function makeScatterPlot() {
+        // get data as arrays
+        let wblData = data.map((row) => parseFloat(row["WBL INDEX"]));
+        let jobStartData = data.map((row) => parseFloat(row["STARTING A JOB"]));
+
+        // find limits
+        let axesLimits = findMinMax(wblData, jobStartData);
+
+        // draw axes and return scaling + mapping functions
+        let mapFunctions = drawAxes(axesLimits, "WBL INDEX", "STARTING A JOB", svgScatterPlot, {min: 40, max: 230}, {min: 20, max: 210}, false);
+
+        // plot data as points and add tooltip functionality
+        plotData(mapFunctions);
+
+        // draw title and axes labels
+        makeLabels();
+    }
+
+  // plot all the data points on the SVG
+  // and add tooltip functionality
+  function plotData(map) {
+    // mapping functions
+    let xMap = map.x;
+    let yMap = map.y;
+
+    svgScatterPlot.selectAll('.dot')
+    .data(data)
+    .enter()
+    .append('circle')
+      .attr('cx', xMap)
+      .attr('cy', yMap)
+      .attr('r', 3)
+      .attr('fill', "#4286f4")
+  }
+
+  // make title and axes labels
+  function makeLabels() {
+    svgScatterPlot.append('text')
+      .attr('x', 40)
+      .attr('y', 25)
+      .style('font-size', '10pt')
+      .text("Probability of Starting a Job vs WBL Index Around the World");
+
+    svgScatterPlot.append('text')
+      .attr('x', 45)
+      .attr('y', 240)
+      .style('font-size', '8pt')
+      .text('Probability of Starting a Job');
+
+    svgScatterPlot.append('text')
+      .attr('transform', 'translate(15, 300)rotate(-90)')
+      .attr('x', 110)
+      .style('font-size', '8pt')
+      .text('WBL Index');
+  }
+
+
+  // draw the axes and ticks
+  function drawAxes(limits, x, y, svg, rangeX, rangeY, isYear) {
+    // return x value from a row of data
+    let xValue = function(d) { return +d[x]; }
+
+    // function to scale x value
+    let xScale = "";
+    //use different scale if x-axis is year
+    if (isYear) {
+      xScale = d3.scaleTime()
+      .range([rangeX.min, rangeX.max]);
+    } else {
+      xScale = d3.scaleLinear()
+      .domain([limits.xMin, limits.xMax]) // give domain buffer room
+      .range([rangeX.min, rangeX.max]);
+    }
+
+    // xMap returns a scaled x value from a row of data
+    let xMap = function(d) { return xScale(xValue(d)); };
+
+    // plot x-axis at bottom of SVG
+    let xAxis = d3.axisBottom().scale(xScale);
+    //parse date to make x-axis in years
+    if (isYear) {
+      xScale.domain(d3.extent(data, function(d) {return parseYear(d[x]);}))
+    }
+    svg.append("g")
+      .attr('transform', 'translate(0, ' + rangeY.max + ')')
+      .call(xAxis);
+    //change domain to allow calculation of points (no parsing of date)
+    xScale.domain(d3.extent(data, function(d) {return d[x];}))
+
+    // return y value from a row of data
+    let yValue = function(d) { return +d[y]}
+
+    // function to scale y
+    let yScale = d3.scaleLinear()
+    .domain([limits.yMax, limits.yMin]) // give domain buffer
+    .range([rangeY.min + 20, rangeY.max]);
+
+    // yMap returns a scaled y value from a row of data
+    let yMap = function (d) { return yScale(yValue(d)); };
+
+    // plot y-axis at the left of SVG
+    let yAxis = d3.axisLeft().scale(yScale);
+    svg.append('g')
+      .attr('transform', 'translate(' + rangeX.min + ', 0)')
+      .call(yAxis);
+
+    // return mapping and scaling functions
+    return {
+      x: xMap,
+      y: yMap,
+      xScale: xScale,
+      yScale: yScale
+    };
+  }
+
+  // find min and max for arrays of x and y
+  function findMinMax(x, y) {
+
+    // get min/max x values
+    let xMin = d3.min(x);
+    let xMax = d3.max(x);
+
+    // get min/max y values
+    let yMin = d3.min(y);
+    let yMax = d3.max(y);
+
+    // return formatted min/max data as an object
+    return {
+      xMin : xMin,
+      xMax : xMax,
+      yMin : yMin,
+      yMax : yMax
+    }
+  }
+
+
+
 })();
